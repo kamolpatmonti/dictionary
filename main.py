@@ -16,7 +16,7 @@ df = pd.read_csv("file/word.txt", sep="\n", header=None)
 df.columns = ["word"]
 
 # get file name to filename
-file = os.listdir(r"D:\Users\USER\IdeaProjects\FindText\file")[0]
+file = os.listdir(r"D:\Users\USER\IdeaProjects\dictionary\file")[0]
 filename, file_extension = os.path.splitext(file)
 
 # looping to add new row by file name
@@ -25,7 +25,6 @@ filename, file_extension = os.path.splitext(file)
 #     if count_round <= 100:
 #         df_two = pd.DataFrame({'word': n[filename]})
 #     count_round += 1
-#
 # print(len(df_two.axes[0]))
 # print(df_two)
 
@@ -35,8 +34,13 @@ df['length'] = df['word'].str.len()
 # convert to lower case
 df = df.apply(lambda x: x.astype(str).str.lower())
 
-df['length'] = pd.to_numeric(df['length'])
+# for root, dirs, files in os.listdir(r"folder/dictionary_A.txt"):
+#     for file in files:
+#         if file.endswith(".txt"):
+#             print(os.path.join("file", file))
 
+
+df['length'] = pd.to_numeric(df['length'])
 # check length of word > 5
 print('check length of word > 5 is ' + str(len(df[df.length > 5])))
 
@@ -55,33 +59,60 @@ df_first.columns = ["alphabet"]
 
 df = df.drop(columns=["length", "first_word", "last_word"], axis=1)
 
-
 # get first word from df
 def firstletter(index):
     # df.reset_index(drop=True)
     firstentry = df.iloc[index, 0]
     return firstentry[0]
 
-
 # create file and zip file by first character
+# check size of file in folder
 for letter, group in df.groupby(firstletter):
     group.to_csv("folder/dictionary_{}.txt".format(letter))
     zipfile.ZipFile("zip/dictionary_{}.zip".format(letter), 'w').write("folder/dictionary_{}.txt".format(letter))
-
-# check size of file in folder
-sizes = os.path.getsize("folder/dictionary_A.txt")
-# print(sizes)
+    filesizes = os.stat("folder/dictionary_{}.txt".format(letter)).st_size
+    zipsizes = os.stat("zip/dictionary_{}.zip".format(letter)).st_size
+    print("size of file dictionary_{}.txt is ".format(letter) + str(filesizes))
+    print("size of zip file dictionary_{}.zip is ".format(letter) + str(zipsizes))
+    diffsize = ((zipsizes-filesizes)/filesizes)*100
+    diffsize = float("{:.2f}".format(diffsize))
+    print("% different is " + str(diffsize) + " %")
 
 # connect mysql database
-mydb = mysql.connector.connect(
+db = mysql.connector.connect(
     host="localhost",
     user="root",
     passwd="1234"
 )
 # check database connection
-# print(mydb.is_connected())
+# print(db.is_connected())
+
+# insert file to table
+cursor = db.cursor()
+# cursor.execute("TRUNCATE TABLE table")
+
+folder = open(r'folder/dictionary_A.txt')
+file_content = folder.read()
+# print(file_content)
+values = [line.split() for line in file_content]
+folder.close()
+
+query = "INSERT INTO table VALUES (%s,%s)"
+
+cursor.execute(query, values)
+# cursor.execute(query, (file_content,))
+
+db.commit()
+db.close()
 
 
+
+
+
+
+
+
+# test Flask
 app = Flask(__name__)
 
 # @app.route("/")
