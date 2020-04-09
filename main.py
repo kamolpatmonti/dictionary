@@ -2,7 +2,8 @@ import pandas as pd
 import os
 import zipfile
 import mysql.connector
-from flask import Flask, render_template
+from flask import Flask, redirect, url_for, request, render_template
+import time
 
 # import file dictionary
 # f = open(r"file/word.txt", encoding="utf8").readlines()
@@ -39,7 +40,6 @@ df = df.apply(lambda x: x.astype(str).str.lower())
 #         if file.endswith(".txt"):
 #             print(os.path.join("file", file))
 
-
 df['length'] = pd.to_numeric(df['length'])
 # check length of word > 5
 print('check length of word > 5 is ' + str(len(df[df.length > 5])))
@@ -59,24 +59,26 @@ df_first.columns = ["alphabet"]
 
 df = df.drop(columns=["length", "first_word", "last_word"], axis=1)
 
+
 # get first word from df
 def firstletter(index):
     # df.reset_index(drop=True)
     firstentry = df.iloc[index, 0]
     return firstentry[0]
 
+
 # create file and zip file by first character
 # check size of file in folder
 for letter, group in df.groupby(firstletter):
-    group.to_csv("folder/dictionary_{}.txt".format(letter))
+    group.to_csv("folder/dictionary_{}.txt".format(letter), index=False)
     zipfile.ZipFile("zip/dictionary_{}.zip".format(letter), 'w').write("folder/dictionary_{}.txt".format(letter))
     filesizes = os.stat("folder/dictionary_{}.txt".format(letter)).st_size
     zipsizes = os.stat("zip/dictionary_{}.zip".format(letter)).st_size
     print("size of file dictionary_{}.txt is ".format(letter) + str(filesizes))
     print("size of zip file dictionary_{}.zip is ".format(letter) + str(zipsizes))
-    diffsize = ((zipsizes-filesizes)/filesizes)*100
+    diffsize = ((zipsizes - filesizes) / filesizes) * 100
     diffsize = float("{:.2f}".format(diffsize))
-    print("% different is " + str(diffsize) + " %")
+    print("percent different is " + str(diffsize) + " %")
 
 # connect mysql database
 db = mysql.connector.connect(
@@ -92,38 +94,34 @@ cursor = db.cursor()
 # cursor.execute("TRUNCATE TABLE table")
 
 folder = open(r'folder/dictionary_A.txt')
-file_content = folder.read()
+file_content = folder.read().strip()
+
 # print(file_content)
-values = [line.split() for line in file_content]
+# values = pd.DataFrame(eval(file_content))
 folder.close()
+# print(values)
 
-query = "INSERT INTO table VALUES (%s,%s)"
+query = "INSERT INTO table VALUES (%s)"
 
-cursor.execute(query, values)
+# cursor.execute(query, values)
 # cursor.execute(query, (file_content,))
 
 db.commit()
 db.close()
 
-
-
-
-
-
-
-
 # test Flask
-app = Flask(__name__)
+app = Flask(__name__)  # create an app instance
 
-# @app.route("/")
-# def home():
-#     return render_template("index.html")
-#
-#
-# @app.route("/salvador")
-# def salvador():
-#     return "Hello, Salvador"
-#
-#
-# if __name__ == "__main__":
-#     app.run(debug=True)
+
+@app.route("/")  # at the end point /
+def hello():  # call method hello
+    return "Hello World!"  # which returns "hello world"
+
+
+if __name__ == "__main__":  # on running python app.py
+    app.run()  # run the flask app
+
+
+start_time = time.time()
+# main()
+print("--- runtime is %s seconds ---" % (time.time() - start_time))
